@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Shortener - HTML, CSS & Node.js</title>
+    <link rel="stylesheet" href="./url.css" type="text/css">
+</head>
+<body>
+    <div class="container">
+        <div>
+            <h1>URL Shortener</h1>
+        </div>
+        <form action="/" method="post">
+            <div class="url-container">
+                <label for="url">Enter URL Link:</label>
+                <input type="url" name="url" id="url" placeholder="enter or paste the link here...">
+            </div>
+            <div class="shortCode-container">
+                <label for="shortCode">Enter short text:</label>
+                <input type="text" name="shortCode" id="shortCode" placeholder="enter text to make it short...">
+            </div>
+            <div class="btn-container">
+                <button type="submit" id="shorten-btn">Shorten</button>
+            </div>
+        </form>
+        <div class="shortened-container">
+            <h2>Shortened URLs</h2>
+            <ul>
+                <!-- {{ shortened_urls }} -->
+                <!-- Object.entries(links)
+                .map(
+                    ([shortCode, url]) => 
+                        `<li><a href="/${shortCode}" target="_blank">${host}/${shortCode}</a> -> ${url}</li>`
+                )
+                .join("") -->
+
+                <% links.map(({shortCode, url}) => { %>
+                    <% const truncatedURL = url.length >= 30? `${url.slice(0, 40)}...`: url %>
+                    <li>
+                        <a href="/<%= shortCode%>" target="_blank">
+                            <%= host %>/<%= shortCode%>
+                        </a> - <%= truncatedURL %>
+                    </li>
+                <% }) %>
+            </ul>
+
+            
+        </div>
+    </div>
+
+
+    <script>
+    </script>
+</body>
+</html>

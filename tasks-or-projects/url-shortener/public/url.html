@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Shortener - HTML, CSS & Node.js</title>
+    <link rel="stylesheet" href="./url.css" type="text/css">
+</head>
+<body>
+    <div class="container">
+        <div>
+            <h1>URL Shortener</h1>
+        </div>
+        <form class="form-data">
+            <div class="url-container">
+                <label for="url">Enter URL Link:</label>
+                <input type="url" name="url" id="url" placeholder="enter or paste the link here...">
+            </div>
+            <div class="shortCode-container">
+                <label for="shortCode">Enter short text:</label>
+                <input type="text" name="shortCode" id="shortCode" placeholder="enter text to make it short...">
+            </div>
+            <div class="btn-container">
+                <button type="submit" id="shorten-btn">Shorten</button>
+            </div>
+        </form>
+        <div class="shortened-container">
+            <h2>Shortened URLs</h2>
+            <ul class="shortened-urls">
+
+            </ul>
+        </div>
+    </div>
+
+
+    <script>
+
+        async function fetchShortenedURLs(){
+            try{
+                const res = await fetch('/links');
+                const data = await res.json();
+                const list = document.querySelector('.shortened-urls');
+                list.innerHTML = "";
+
+                for(const [shortCode, url] of Object.entries(data)){
+                    const li = document.createElement('li');
+                    li.innerHTML = `<a href="${url}" target="_blank">
+                        ${window.location.origin}/${shortCode}
+                    </a>
+                    <p>${url}</p>
+                    `;
+                    list.appendChild(li);
+                }
+
+            }catch(error){
+                console.log(error);
+            }
+        }
+
+        const form = document.querySelector('.form-data');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const url = formData.get('url');
+            const shortCode = formData.get('shortCode');
+            console.log(url, shortCode);
+
+            try{
+                const res = await fetch('/shorten', {
+                    method: 'POST',
+                    headers: {"Content-Type":"application/json"},
+                    body: JSON.stringify({url, shortCode})
+                });
+                if(res.ok){
+                    fetchShortenedURLs();
+                    alert("form submitted successfully!");
+                    document.getElementById('url').value = "";
+                    document.getElementById('shortCode').value = "";
+                }else{
+                    const errorMessage = await res.text();
+                    alert(errorMessage);
+                }
+            }catch(error){
+                console.log(error);
+            }
+        })
+
+        fetchShortenedURLs();
+    </script>
+</body>
+</html>

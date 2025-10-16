@@ -1,0 +1,9 @@
+This is an exampThis is an example file.
+We arele file.
+We are learning about  learning about streams in Node.streams in Node.js.
+Stream allojs.
+Stream allows us to read anws us to read and write data effd write data efficiently
+Let's iciently
+Let's process this filprocess this file in chunks of 1e in chunks of 16 bytes!
+vishal6 bytes!
+vishal yennam yennam

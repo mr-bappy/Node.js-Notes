@@ -1,0 +1,57 @@
+[
+    {
+        "name": "nobita",
+        "age": 19,
+        "gender": "male",
+        "score": "A+",
+        "subjects": {
+            "maths": "passed",
+            "physics": "passed",
+            "chemistry": "passed"
+        }
+    },
+    {
+        "name": "sizuka",
+        "age": 19,
+        "gender": "female",
+        "score": "B+",
+        "subjects": {
+            "maths": "passed",
+            "physics": "passed",
+            "chemistry": "passed"
+        }
+    },
+    {
+        "name": "degisuki",
+        "age": 19,
+        "gender": "male",
+        "score": "F",
+        "subjects": {
+            "maths": "failed",
+            "physics": "passed",
+            "chemistry": "passed"
+        }
+    },
+    {
+        "name": "gian",
+        "age": 19,
+        "gender": "male",
+        "score": "C",
+        "subjects": {
+            "maths": "passed",
+            "physics": "passed",
+            "chemistry": "passed"
+        }
+    },
+    {
+        "name": "suneo",
+        "age": 19,
+        "gender": "male",
+        "score": "B+",
+        "subjects": {
+            "maths": "passed",
+            "physics": "passed",
+            "chemistry": "passed"
+        }
+    }
+]
