@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 // step 1: connect to db
 try {
-    await mongoose.connect("mongodb://localhost:27017/mongoose_middleware");
+    await mongoose.connect("connection/db_name");
     mongoose.set("debug", true);
 } catch (error) {
     console.log(error);
