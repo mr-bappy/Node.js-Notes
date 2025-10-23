@@ -2,7 +2,7 @@
 
 import { MongoClient } from "mongodb";
 
-const client = new MongoClient("mongodb://localhost:27017/");
+const client = new MongoClient("your_db_connection");
 await client.connect();
 
 const db = client.db("mongodb_nodejs_db");
@@ -21,7 +21,7 @@ const userCollection = db.collection('user');
 //         role: "admin"
 //     },
 //     {
-//         name: "hasti",
+//         name: "hippo",
 //         age: 19,
 //         role: "user"
 //     },
@@ -48,10 +48,10 @@ const userCollection = db.collection('user');
 // console.log(user._id.toHexString());
 
 // Update
-// await userCollection.updateOne({name: "hasti"}, {$set: {age: 20}})
+// await userCollection.updateOne({name: "bheem"}, {$set: {age: 20}})
 
 // Delete
-// await userCollection.deleteOne({name: "hasti"})
+// await userCollection.deleteOne({name: "bheem"})
 
 // const result = await userCollection.deleteMany({ role: "user" });
 // console.log(`${result.deletedCount} documents deleted`);

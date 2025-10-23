@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 
 // step 1: connect to db
 try {
-    await mongoose.connect("mongodb://localhost:27017/mongoose_db");
+    await mongoose.connect("db_connection/db_name");
     mongoose.set("debug", true);
 } catch (error) {
     console.log(error);
