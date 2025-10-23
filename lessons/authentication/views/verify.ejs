@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Email</title>
+</head>
+<body>
+    <div>
+        <%- include('route') %>
+        <p> your email is not verified, click on send email verification to recieve otp.</p>
+        <p>
+            <b>email:</b> <%= email %>
+        </p>
+        <form 
+        action="/auth/user/send-verification"
+        method="POST"
+        >
+            <button type="submit">send email verification</button>
+        </form> <br>
+
+        <form 
+        action="/auth/user/verify-email-token"
+        method="get"
+        >
+            <input 
+            type="text"
+            name="token"
+            maxlength="8"
+            required
+            pattern="\d{8}"
+            title="please enter 8-digit OTP"
+            >
+
+            <input  
+            name="email" 
+            type="hidden"
+            value="<%= email %>"
+            >
+
+            <button type="submit">verify code</button>
+        </form>
+    </div>
+</body>
+</html>

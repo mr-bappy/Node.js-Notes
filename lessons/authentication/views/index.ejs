@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth - Home Page</title>
+</head>
+<body>
+    <%- include("route.ejs") %>
+    <h1>Home Page</h1>
+    <% if(user) { %>
+        <h2>You are logged in</h2>
+    <% } else { %>
+        <h2>You are not logged in</h2>
+    <% } %>
+
+    <form 
+    action="/auth/user/data"
+    method="POST"
+    >
+        <input type="text" placeholder="enter title" name="title"> <br> <br>
+        <input type="text" placeholder="enter tagline" name="tagline"> <br> <br>
+        <button type="submit">Add</button>
+    </form>
+
+    <div style="padding: 5px">
+        <% userData.map((data) => { %>
+            <div style="display:flex; gap:10px; font-size:20px; border:1px solid black; padding:5px; margin:5px;">
+                <p style="margin:0px"><b>title:</b> <%= data.title %></p>
+                <p style="margin:0px"><b>tagline:</b> <%= data.tagline %></p>
+                <button>
+                    <a href="/auth/user/update/<%= data.id %>" style="color:black; text-decoration:none;">update</a>
+                </button>
+                <form 
+                action="/auth/user/delete/<%= data.id %>"
+                method="POST"
+                >
+                    <button type="submit">delete</button>
+                </form>
+            </div>
+        <% }) %>
+    </div>
+</body>
+</html>

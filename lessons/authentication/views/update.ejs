@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth - Home Page</title>
+</head>
+<body>
+    <%- include("route.ejs") %>
+    <h1>Home Page</h1>
+    <% if(user) { %>
+        <h2>You are logged in</h2>
+    <% } else { %>
+        <h2>You are not logged in</h2>
+    <% } %>
+
+    <form 
+    action="/auth/user/update/<%= id %>"
+    method="POST"
+    >
+        <input type="text" placeholder="enter title" name="title"
+        value="<%= title %>"
+        > <br> <br>
+        <input type="text" placeholder="enter tagline" name="tagline"
+        value="<%= tagline %>"
+        > <br> <br>
+        <button type="submit">Update</button>
+    </form>
+</body>
+</html>
