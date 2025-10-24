@@ -9,7 +9,7 @@
     <%- include("route.ejs") %>
     <h1>Your Profile Page</h1>
     <div>
-        <img src="#" alt="user profile">
+        <img src="/<%= avatarURL %>" alt="user profile" height="70" width="70" style="border-radius:50%;">
     </div>
     <div>
         <p>
@@ -37,9 +37,15 @@
         <button>
             <a style="color:black; text-decoration:none;" href="/auth/edit-profile">edit profile</a>
         </button>
-        <button>
+       <% if(hasPassword){ %>
+         <button>
             <a style="color:black; text-decoration:none;" href="/auth/change-password">change password</a>
         </button>
+       <% }else{ %>
+        <button>
+            <a style="color:black; text-decoration:none;" href="/auth/set-password">set password</a>
+        </button>
+       <% } %>
     </div>
 </body>
 </html>

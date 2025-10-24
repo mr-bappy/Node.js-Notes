@@ -8,13 +8,39 @@
 <body>
     <h1>Edit your profile</h1>
 
-    <form action="/auth/edit-profile" method="post">
+    <form 
+    action="/auth/edit-profile" 
+    method="post"
+    enctype="multipart/form-data"
+    class="form"
+    >
+
+        <div class="avatar-preview">
+            <% if(avatarURL){ %>
+                <img src="/<%= avatarURL %>" alt="current-avatar"  height="200" width="200" id="avatar-image">
+            <% } else { %>
+                <div>
+                    <p id="avatar-placeholder">no profile avatar</p>
+                    <img src="" alt="preview" style="display:none;" id="avatar-image">
+                </div>
+            <% } %>
+        </div>
+
+        <div>
+            <button> change avatar </button> <br> <br>
+            <input type="file" name="avatar" accept="image/*" id="avatar"> <br> <br>
+            <% if(avatarURL){ %>
+                <button type="button" id="remove-btn">remove avatar</button>
+            <% } %>
+        </div> <br>
+
+
 
         <input 
         type="text"
         name="username"
         value="<%= username %>"
-        >
+        > <br> <br>
 
         <button type="submit">save changes</button>
     </form>
@@ -24,5 +50,61 @@
             <p><%= error %> </p>
         <% }) %>
     <% } %>
+
+
+    <script>
+        // preview image
+        document.getElementById('avatar').addEventListener('change', function(e){
+            const file = e.target.files[0];
+            console.log(file);
+
+            if(file){
+                const reader = new FileReader();
+                reader.onload = function(event){
+                    const avatarPreviewImg = document.getElementById("avatar-image");
+                    avatarPreviewImg.src = event.target.result;
+                    avatarPreviewImg.style.display = "block";
+
+                    const placeholder = document.getElementById('avatar-placeholder');
+                    if(placeholder){
+                        placeholder.style.display = "none";
+                    }
+                }
+                reader.readAsDataURL(file);
+            }
+        })
+
+        // remove button
+        const removeBtn = document.getElementById('remove-btn');
+        if(removeBtn){
+            removeBtn.addEventListener('click', function(){
+                // add hidden input
+                const hiddenInput = document.createElement("input");
+                hiddenInput.type = "hidden";
+                hiddenInput.name = "removeAvatar";
+                hiddenInput.value = "true";
+                const formAppend = document.querySelector('.form').appendChild(hiddenInput);
+                console.log(formAppend);
+
+                // update UI
+                document.getElementById("avatar-image").style.display = "none";
+
+                // create placeholder if it doesn't exist
+                let placeholder = document.getElementById('avatar-placeholder');
+                if(!placeholder){
+                    placeholder = document.createElement('p');
+                    placeholder.id = 'avatar-placeholder';
+                    placeholder.className = 'avatar-placeholder';
+                    placeholder.innerHTML = "no profile photo";
+                    const pAppend = document.querySelector(".avatar-preview").appendChild(placeholder);
+                    console.log(pAppend);
+                }
+                placeholder.style.display = "flex";
+
+                // reset file input
+                document.getElementById('avatar').value = "";
+            })
+        }
+    </script>
 </body>
 </html>

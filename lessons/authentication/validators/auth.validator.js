@@ -21,27 +21,27 @@ export const validateRegistration = z.object({
 export const validateLogin = z.object({
     email: z
         .string()
-        .email({ message: "invaild email or password" })
+        .email({ message: "invalid email or password" })
         .trim()
-        .min(5, { message: "invaild email or password" })
-        .max(100, { message: "invaild email or password" }),
+        .min(5, { message: "invalid email or password" })
+        .max(100, { message: "invalid email or password" }),
     password: z
         .string()
-        .min(6, { message: "invaild email or password"})
-        .max(100, { message: "invaild email or password" })
+        .min(6, { message: "invalid email or password"})
+        .max(100, { message: "invalid email or password" })
 });
 
 // export const validateLogin = z.object({
 //     email: z
 //         .string()
-//         .email({ message: "invaild email or password" })
+//         .email({ message: "invalid email or password" })
 //         .trim()
-//         .min(5, { message: "invaild email or password" })
-//         .max(100, { message: "invaild email or password" }),
+//         .min(5, { message: "invalid email or password" })
+//         .max(100, { message: "invalid email or password" }),
 //     password: z
 //         .string()
-//         .min(6, { message: "invaild email or password"})
-//         .max(100, { message: "invaild email or password" })
+//         .min(6, { message: "invalid email or password"})
+//         .max(100, { message: "invalid email or password" })
 // });
 
 // export const validateRegistration = validateLogin.extend({
@@ -127,6 +127,27 @@ export const verifyResetPasswordSchema = z.object({
         message: "Confirm password must be no more than 100 characters"
     }),
 }).refine((data) => data.newPassword===data.confirmPassword, {
+    message: "Password don't match",
+    path: ["confirmPassword"],
+});
+
+// verifySetPassword
+export const verifySetPasswordSchema = z.object({
+    setPassword: z
+    .string()
+    .min(6, { message: "New password must be atleast 6 characters long"})
+    .max(1000, {
+        message: "New password must be no more than 100 characters"
+    }),
+    confirmPassword: z
+    .string()
+    .min(6, {
+        message: "Confirm password must be atleast 6 characters long"
+    })
+    .max(100, {
+        message: "Confirm password must be no more than 100 characters"
+    }),
+}).refine((data) => data.setPassword===data.confirmPassword, {
     message: "Password don't match",
     path: ["confirmPassword"],
 });

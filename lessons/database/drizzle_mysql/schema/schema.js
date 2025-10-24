@@ -1,5 +1,5 @@
 import { relations, sql } from 'drizzle-orm';
-import { boolean, int, mysqlTable, serial, text, timestamp, varchar } from 'drizzle-orm/mysql-core';
+import { boolean, int, mysqlEnum, mysqlTable, serial, text, timestamp, varchar } from 'drizzle-orm/mysql-core';
 
 export const usersTable = mysqlTable('users_table', {
   id: serial().primaryKey(),
@@ -14,7 +14,8 @@ export const usersAuth = mysqlTable('users_auth', {
   username: varchar({ length: 255 }).notNull(),
   email: varchar({ length: 255 }).notNull().unique(),
   isEmailValid: boolean("is_email_valid").default(false).notNull(),
-  password: varchar({ length: 255 }).notNull(),
+  password: varchar({ length: 255 }),
+  avatarURL: text("avatar_url"),
 });
 
 // creating schema for user data authentication lesson
@@ -79,5 +80,14 @@ export const passwordResetTokensTable = mysqlTable("password_reset_token", {
   timestamp("expires_at")
   .default(sql`(CURRENT_TIMESTAMP + INTERVAL 1 HOUR)`)
   .notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull()
+})
+
+// oauthAccountsTable
+export const oauthAccountsTable = mysqlTable("oauth_accounts", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("user_id").notNull().references(() => usersAuth.id, { onDelete: "cascade" }),
+  provider: mysqlEnum("provider", ["google", "github"]).notNull(),
+  providerAccountId: varchar("provider_account_id", { length: 255 }).notNull().unique(),
   createdAt: timestamp("created_at").defaultNow().notNull()
 })

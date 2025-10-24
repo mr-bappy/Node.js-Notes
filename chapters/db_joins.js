@@ -15,4 +15,10 @@ edit profile functionalities
 change/reset password functionalities
 forget password functionalities using email
 
+
+google login functionalities
+github login functionalities
+
+upload file functionalities
+
 */

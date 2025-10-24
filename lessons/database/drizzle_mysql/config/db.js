@@ -5,6 +5,7 @@
 import mysql from 'mysql2';
 import { drizzle } from 'drizzle-orm/mysql2';
 import { and, eq, gte, lt, sql } from 'drizzle-orm';
+import { mysqlEnum } from 'drizzle-orm/mysql-core';
 
 // Create a connection using mysql2
 const connection = mysql.createConnection({
@@ -22,6 +23,7 @@ export const sqlMod = {
   sql,
   eq,
   gte,
-  and
+  and,
+  mysqlEnum,
 };
 

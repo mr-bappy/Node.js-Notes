@@ -1,14 +1,17 @@
 // import { sendEmail } from "../lib/nodemailer.js";
 import { sendEmail } from "../lib/send-email.js";
-import { clearResetPasswordToken, clearUserSession, clearVerifyEmailTokens, comparePassword, createAccessToken, createRefreshToken, createResetPasswordLink, createSession, createUser, createVerifyEmailLink, findUserByEmail, findUserById, findVerificationEmailToken, generateOTP, getResetPasswordToken, getUserByEmail, getUserData, hashedPassword, insertVerifyEmailToken, updateUserByName, updateUserPassword, verifyUserEmailAndUpdate } from "../services/auth.services.js";
-import { ACCESS_TOKEN_EXPIRY, REFRESH_TOKEN_EXPIRY } from "../services/constants.js";
-import { forgetPasswordSchema, validateLogin, validateRegistration, verifyEmailSchema, verifyPasswordSchema, verifyResetPasswordSchema, verifyUserSchema } from "../validators/auth.validator.js";
-import z from "zod";
+import { clearResetPasswordToken, clearUserSession, clearVerifyEmailTokens, comparePassword, createAccessToken, createRefreshToken, createResetPasswordLink, createSession, createUser, createUserWithOauth, createVerifyEmailLink, findUserByEmail, findUserById, findVerificationEmailToken, generateOTP, getResetPasswordToken, getUserByEmail, getUserData, getUserWithOauthId, hashedPassword, insertVerifyEmailToken, linkUserWithOauth, updateUserByName, updateUserPassword, verifyUserEmailAndUpdate } from "../services/auth.services.js";
+import { ACCESS_TOKEN_EXPIRY, OAUTH_EXCHANGE_EXPIRY, REFRESH_TOKEN_EXPIRY } from "../services/constants.js";
+import { forgetPasswordSchema, validateLogin, validateRegistration, verifyEmailSchema, verifyPasswordSchema, verifyResetPasswordSchema, verifySetPasswordSchema, verifyUserSchema } from "../validators/auth.validator.js";
+import z, { httpUrl } from "zod";
 import fs from "fs/promises";
 import path from "path";
 import mjml2html from "mjml";
 import ejs from "ejs";
+import { decodeIdToken, generateCodeVerifier, generateState } from "arctic";
 import { getHtmlFromMjmlTemplate } from "../lib/get-html-from-mjml-template.js";
+import { google } from "../lib/oauth/google.js";
+import { github } from "../lib/oauth/github.js";
 
 const getRegisterPage = (req, res) => {
     if(req.user) return res.redirect("/");
@@ -130,6 +133,13 @@ const postLogin = async (req, res) => {
         return res.redirect("/auth/login"); 
     }
 
+    if(!user.password){
+        req.flash("invalid",
+            "You have created account using social login. Please login with your social account"
+        )
+        return res.redirect("/auth/login");
+    }
+
     const isPasswordValid = await comparePassword(password, user.password);
 
     if(!isPasswordValid){
@@ -187,6 +197,8 @@ export const getUser = async(req, res) => {
         `);
     
     const user = await findUserById(req.user.id);
+    if(!user) return res.redirect("/auth/login");
+
     const {username, email, isEmailValid } = user;
 
     const tags = await getUserData(user.id);
@@ -197,7 +209,14 @@ export const getUser = async(req, res) => {
 
     
 
-    return res.render("profile", {username, email, count, isEmailValid});
+    return res.render("profile", {
+        username, 
+        email, 
+        count, 
+        hasPassword: Boolean(user.password) ,
+        isEmailValid,
+        avatarURL: user.avatarURL
+    });
 
 }
 
@@ -282,7 +301,8 @@ export const editProfile = async (req, res) => {
 
     return res.render("auth/edit-profile", {
         username: user.username,
-        error: req.flash("errors")
+        avatarURL: user.avatarURL,
+        errors: req.flash("errors")
     });
 };
 
@@ -298,7 +318,10 @@ export const postEditProfile = async (req, res) => {
         return res.redirect("/auth/edit-profile");
     }
 
-    await updateUserByName({ userId: req.user.id, updateName: data.username });
+    // await updateUserByName({ userId: req.user.id, updateName: data.username });
+    
+    const fileURL = req.file ? `uploads/avatars/${req.file.filename}` : undefined;
+    await updateUserByName({ userId: req.user.id, updateName: data.username, avatarURL: fileURL });
 
     return res.redirect('/auth/user');
 }
@@ -425,6 +448,302 @@ export const postResetPassword = async (req, res) => {
     return res.redirect("/auth/login");
 }
 
+// getGoogleLoginPage
+export const getGoogleLoginPage = async (req, res) => {
+    if(req.user) return res.return("/");
+
+    const state = generateState();
+    const codeVerifier = generateCodeVerifier();
+    const url = google.createAuthorizationURL(state, codeVerifier, [
+        "openid",
+        "profile",
+        "email",
+    ]);
+
+    const cookieConfig = {
+        httpOnly: true, 
+        secure: true,
+        maxAge: OAUTH_EXCHANGE_EXPIRY,
+        sameSite: "lax",
+    }
+
+    res.cookie("google_oauth_state", state, cookieConfig);
+    res.cookie("google_code_verifier", codeVerifier, cookieConfig);
+
+    res.redirect(url.toString())
+}
+
+// getGoogleLoginCallback
+export const getGoogleLoginCallback = async (req, res) => {
+
+    const { code, state } = req.query;
+
+    const {
+        google_oauth_state: storedState,
+        google_code_verifier: codeVerifier
+    } = req.cookies;
+
+    try {
+        if(
+        !code ||
+        !state ||
+        !storedState ||
+        !codeVerifier ||
+        state !== storedState
+    ){
+        console.log(code)
+        console.log(state)
+        console.log(storedState)
+        console.log(codeVerifier)
+        req.flash("errors", "Couldn't login with google because of invalid attempt. Please try again! ");
+        return res.redirect("/auth/login")
+    }
+    } catch (error) {
+        console.log(error)
+    }
+
+    let tokens;
+    try{
+        tokens = await google.validateAuthorizationCode(code, codeVerifier);
+    }catch{
+         console.log("error occurred 2")
+        req.flash(
+            "errors",
+            "Couldn't login with login because of invalid attempt. Please try again!"
+        );
+        return res.redirect("/auth/login");
+    }
+    console.log("token google:", tokens )
+
+    const claims = decodeIdToken(tokens.idToken());
+    const { sub: googleUserId, name, email } = claims;
+
+    let user = await getUserWithOauthId({
+        provider: "google",
+        email,
+    });
+
+    if(user && !user.providerAccountId){
+        await linkUserWithOauth({
+            userId: user.id,
+            provider: "google",
+            providerAccountId: googleUserId,
+        });
+    }
+
+    if(!user){
+        user = await createUserWithOauth({
+            name,
+            email,
+            provider: "google",
+            providerAccountId: googleUserId
+        });
+    }
+
+    // hybrid authentication
+    const session = await createSession(user.id, {
+        ip: req.clientIp,
+        userAgent: req.headers["user-agent"],
+    });
+
+    const accessToken = createAccessToken({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        isEmailValid: user.isEmailValid,
+        sessionId: session.id
+    });
+
+    const refreshToken = createRefreshToken(session.id);
+
+    const baseConfig = { httpOnly: true, secure: true };
+
+    res.cookie("access_token", accessToken, {
+        ...baseConfig,
+        maxAge: ACCESS_TOKEN_EXPIRY,
+    });
+
+    res.cookie("refresh_token", refreshToken, {
+        ...baseConfig,
+        maxAge: REFRESH_TOKEN_EXPIRY,
+    });
+
+    res.redirect("/");
+
+}
+
+// getGithubLoginPage
+export const getGithubLoginPage = async (req, res) => {
+
+    if(req.user) return res.return("/");
+
+    const state = generateState();
+    const url = github.createAuthorizationURL(state, ["user:email"]);
+
+    const cookieConfig = {
+        httpOnly: true, 
+        secure: true,
+        maxAge: OAUTH_EXCHANGE_EXPIRY,
+        sameSite: "lax",
+    }
+
+    res.cookie("github_oauth_state", state, cookieConfig);
+
+    res.redirect(url.toString());
+}
+
+// getGithubLoginCallback
+export const getGithubLoginCallback = async (req, res) => {
+
+    const { code, state } = req.query;
+    const {
+        github_oauth_state: storedState
+    } = req.cookies;
+
+    function handleFailedLogin(){
+        req.flash(
+            "errors",
+            "Couldn't login with GitHub because of invalid login attempt. Please try again!"
+        );
+        return res.redirect("/auth/login");
+    }
+
+    if(!code || !state || !storedState || state !== storedState){
+        return handleFailedLogin();
+    }
+
+    let tokens;
+    try{
+        tokens = await github.validateAuthorizationCode(code);
+    }catch{
+        return handleFailedLogin();
+    }
+
+    const githubUserResponse = await fetch("https://api.github.com/user", {
+        headers : {
+            Authorization: `Bearer ${tokens.accessToken()}`,
+        },
+    });
+
+    if(!githubUserResponse.ok) return handleFailedLogin();
+
+    const githubUser = await githubUserResponse.json();
+    const { id: githubUserId, name} = githubUser;
+
+    const githubEmailResponse = await fetch(
+        "https://api.github.com/user/emails",
+        {
+            headers: {
+                Authorization: `Bearer ${tokens.accessToken()}`,
+            }
+        },
+    )
+
+    if(!githubEmailResponse.ok) return handleFailedLogin();
+
+    const emails = await githubEmailResponse.json();
+    const email = emails.filter((e) => e.primary)[0].email;
+
+    if(!email) return handleFailedLogin();
+
+    // few things to check
+    // 1. user already exists with github's oauth linked
+    // 2. user already exists with same email but google oauth isn't linked
+    // 3. user doesn't exist
+
+    let user = await getUserWithOauthId({
+        provider: "github",
+        email
+    });
+
+    if(user && !user.providerAccountId){
+        await linkUserWithOauth({
+            userId: user.id,
+            provider: "github",
+            providerAccountId: githubUserId,
+        });
+    }
+
+    if(!user){
+        user = await createUserWithOauth({
+            name, 
+            email,
+            provider: "github",
+            providerAccountId: githubUserId,
+        })
+    }
+
+    // hybrid authentication
+    const session = await createSession(user.id, {
+        ip: req.clientIp,
+        userAgent: req.headers["user-agent"],
+    });
+
+    const accessToken = createAccessToken({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        isEmailValid: user.isEmailValid,
+        sessionId: session.id
+    });
+
+    const refreshToken = createRefreshToken(session.id);
+
+    const baseConfig = { httpOnly: true, secure: true };
+
+    res.cookie("access_token", accessToken, {
+        ...baseConfig,
+        maxAge: ACCESS_TOKEN_EXPIRY,
+    });
+
+    res.cookie("refresh_token", refreshToken, {
+        ...baseConfig,
+        maxAge: REFRESH_TOKEN_EXPIRY,
+    });
+
+    return res.redirect("/");
+}
+
+// getSetPassword
+export const getSetPassword = (req, res) => {
+    if(!req.user) return res.redirect("/");
+
+    return res.render("auth/set-password", {
+        errors: req.flash("errors")
+    })
+}
+
+// postSetPassword
+export const postSetPassword = async (req, res) => {
+
+    const {data, error} = await verifySetPasswordSchema.safeParse(req.body);
+
+    if(error instanceof z.ZodError){
+        console.log()
+        const errorMessages = error.issues[0].message;
+        req.flash("errors", errorMessages);
+        return res.redirect(`/auth/set-password/`);
+    }
+
+    const { setPassword } = data;
+
+    const user = await findUserById(req.user.id);
+    if(user.password){
+        req.flash(
+            "errors",
+            "You already have your password set, instead change your password"
+        );
+        return res.redirect("/auth/set-password");
+    }
+
+    await updateUserPassword({
+        userId: req.user.id,
+        newPassword: setPassword,
+    });
+
+    return res.redirect("/auth/user");
+}
+
 export const authControllers = {
     getRegisterPage,
     getLoginPage,
@@ -443,4 +762,10 @@ export const authControllers = {
     postForgetPasswordPage,
     getResetPassword,
     postResetPassword,
+    getGoogleLoginPage,
+    getGoogleLoginCallback,
+    getGithubLoginPage,
+    getGithubLoginCallback,
+    getSetPassword,
+    postSetPassword
 }

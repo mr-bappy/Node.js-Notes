@@ -1,0 +1,1 @@
+ALTER TABLE `users_auth` ADD `avatar_url` text;

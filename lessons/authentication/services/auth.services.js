@@ -5,7 +5,7 @@ import crypto from "crypto";
 
 import { ACCESS_TOKEN_EXPIRY, MILLISECONDS_PER_SECOND, REFRESH_TOKEN_EXPIRY } from "./constants.js";
 import { db, sqlMod } from "../../database/drizzle_mysql/config/db.js"
-import { passwordResetTokensTable, sessionsTable, userData, usersAuth, verifyEmailTokensTable } from "../../database/drizzle_mysql/schema/schema.js"
+import { oauthAccountsTable, passwordResetTokensTable, sessionsTable, userData, usersAuth, verifyEmailTokensTable } from "../../database/drizzle_mysql/schema/schema.js"
 
 export const getUserByEmail = async (email) => {
     const [user] = await db.select().from(usersAuth).where({
@@ -315,11 +315,12 @@ export const clearVerifyEmailTokens = async (email) => {
 }
 
 // updateUserByName
-export const updateUserByName = async ({userId, updateName}) =>{
+export const updateUserByName = async ({userId, updateName, avatarURL}) =>{
     return await db
     .update(usersAuth)
     .set({
-        username: updateName
+        username: updateName,
+        avatarURL: avatarURL
     })
     .where(sqlMod.eq(usersAuth.id, userId))
 }
@@ -390,4 +391,82 @@ export const clearResetPasswordToken = async (userId) => {
     .where(
         sqlMod.eq(passwordResetTokensTable.userId, userId)
     )
+}
+
+// getUserWithOauthId
+export const getUserWithOauthId = async ({ email, provider }) => {
+
+    const [user] = await db
+    .select({
+        id: usersAuth.id,
+        username: usersAuth.username,
+        email: usersAuth.email,
+        isEmailValid: usersAuth.isEmailValid,
+        providerAccountId: oauthAccountsTable.providerAccountId,
+        provider: oauthAccountsTable.provider,
+    })
+    .from(usersAuth)
+    .where(
+        sqlMod.eq(usersAuth.email, email)
+    )
+    .leftJoin(
+        oauthAccountsTable,
+        sqlMod.and(
+            sqlMod.eq(oauthAccountsTable.provider, provider),
+            sqlMod.eq(oauthAccountsTable.userId, usersAuth.id)
+        )
+    )
+
+    return user;
+}
+
+// linkUserWithOauth
+export const linkUserWithOauth = async ({
+    userId,
+    provider,
+    providerAccountId,
+}) => {
+    await db
+    .insert(oauthAccountsTable)
+    .values({
+        userId,
+        provider,
+        providerAccountId
+    });
+}
+
+// createUserWithOauth
+export const createUserWithOauth = async ({
+    name, 
+    email,
+    provider,
+    providerAccountId,
+}) => {
+    const user = await db.transaction(async (trx) => {
+        const [user] = await trx
+        .insert(usersAuth)
+        .values({
+            email,
+            username: name,
+            isEmailValid: true,
+        })
+        .$returningId();
+
+        await trx.insert(oauthAccountsTable).values({
+            provider,
+            providerAccountId,
+            userId: user.id
+        });
+
+        return {
+            id: user.id,
+            name,
+            email,
+            isEmailValid: true,
+            provider,
+            providerAccountId
+        };
+    });
+
+    return user;
 }
